@@ -153,61 +153,7 @@ function otpEmailTemplate(name, otp) {
   return shell(body);
 }
 
-function welcomeEmailTemplate(name) {
-  const steps = [
-    { n: '01', title: 'Complete your profile',  desc: 'Add your details to personalise your experience.' },
-    { n: '02', title: 'Explore the platform',   desc: 'Discover all the tools and features available to you.' },
-    { n: '03', title: 'Need help?',              desc: 'Our support team is always here — reach out anytime.' },
-  ];
 
-  const stepsHtml = steps.map(s => `
-    <tr>
-      <td style="padding-bottom:20px;vertical-align:top;">
-        <table cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="width:44px;padding-right:0;vertical-align:top;padding-top:2px;">
-              <p style="margin:0;font-size:11px;font-weight:700;color:${B.cream};letter-spacing:1px;font-family:${B.font};">${s.n}</p>
-            </td>
-            <td style="border-left:1px solid ${B.border};padding-left:18px;">
-              <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:${B.white};font-family:${B.font};">${s.title}</p>
-              <p style="margin:0;font-size:13px;color:${B.muted};line-height:1.6;font-family:${B.font};">${s.desc}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>`).join('');
-
-  const body = `
-    <tr>
-      <td style="background-color:${B.card};padding:44px 36px 40px;">
-        <div style="width:40px;height:2px;background:${B.cream};margin-bottom:28px;"></div>
-        <h1 style="margin:0 0 12px;font-size:28px;font-weight:600;color:${B.white};line-height:1.3;font-family:${B.font};">
-          Welcome, ${name}.
-        </h1>
-        <p style="margin:0 0 32px;font-size:15px;color:${B.muted};line-height:1.7;font-family:${B.font};">
-          Your email is verified and your account is fully activated.
-          We're glad to have you on board — everything is ready to go.
-        </p>
-        <a href="${process.env.APP_URL}/login"
-           style="display:inline-block;padding:14px 32px;background-color:${B.cream};color:#0a0a0a;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:1.5px;border-radius:6px;text-transform:uppercase;font-family:${B.font};">
-          Go to Dashboard &rarr;
-        </a>
-      </td>
-    </tr>
-
-    <!-- What's next -->
-    <tr>
-      <td style="background-color:${B.cardAlt};border-top:1px solid ${B.border};border-bottom:1px solid ${B.border};padding:32px 36px;">
-        <p style="margin:0 0 24px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${B.creamDark};font-weight:600;font-family:${B.font};">
-          What's next
-        </p>
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${stepsHtml}
-        </table>
-      </td>
-    </tr>`;
-  return shell(body);
-}
 
 function passwordResetEmailTemplate(name, resetLink) {
   const body = `
@@ -243,10 +189,37 @@ function passwordResetEmailTemplate(name, resetLink) {
   return shell(body);
 }
 
+function courseEnrollmentEmailTemplate(name) {
+  const dashboardUrl = 'https://artpreneurcourse.com/dashboard';
+  const body = `
+    <tr>
+      <td style="background-color:${B.card};padding:44px 36px 40px;">
+        <div style="width:40px;height:2px;background:${B.cream};margin-bottom:28px;"></div>
+        <h1 style="margin:0 0 12px;font-size:26px;font-weight:600;color:${B.white};line-height:1.3;font-family:${B.font};">
+          You're in! 🎉
+        </h1>
+        <p style="margin:0 0 32px;font-size:15px;color:${B.muted};line-height:1.7;font-family:${B.font};">
+          Hi ${name}, your payment was successful and you're now officially enrolled in
+          <strong style="color:${B.creamDark};">The Artpreneur Series</strong> by Indian Craft Company.
+        </p>
+        <a href="${dashboardUrl}"
+           style="display:inline-block;padding:14px 32px;background-color:${B.cream};color:#0a0a0a;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:1.5px;border-radius:6px;text-transform:uppercase;font-family:${B.font};">
+          Go to Dashboard &rarr;
+        </a>
+        <p style="margin:32px 0 0;font-size:14px;color:${B.muted};line-height:1.7;font-family:${B.font};">
+          We're excited to have you on this journey.<br/>
+          — Vicky &amp; The Indian Craft Company Team
+        </p>
+      </td>
+    </tr>`;
+  return shell(body);
+}
+
 module.exports = {
   sendMail,
   sendMailBackground,   // ← swap all your route usages to this
   otpEmailTemplate,
-  welcomeEmailTemplate,
+  courseEnrollmentEmailTemplate,
+
   passwordResetEmailTemplate,
 };

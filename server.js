@@ -16,6 +16,8 @@ const meRoute             = require('./routes/me');
 const paymentRoute        = require('./routes/payment');
 const pricingRoute        = require('./routes/pricing');
 const videoTokenRoute = require('./routes/videoToken');
+const videoStreamRoute = require('./routes/videoStream');
+
 
 
 const app  = express();
@@ -64,6 +66,7 @@ app.use('/api/me',              meRoute);
 app.use('/api/payment',         paymentRoute);
 app.use('/api/pricing',         pricingRoute);
 app.use('/api/video-token', videoTokenRoute);
+app.use('/api/video-stream', videoStreamRoute);
 
 
 // ── 404 handler ───────────────────────────────────────────────

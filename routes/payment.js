@@ -1,15 +1,15 @@
 // routes/payment.js
-const express   = require('express');
-const crypto    = require('crypto');
-const Razorpay  = require('razorpay');
-const jwt       = require('jsonwebtoken');
-const { pool }  = require('../config/db');
-const auth      = require('../middleware/auth');
-
+const express = require('express');
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
+const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
+const auth = require('../middleware/auth');
+const { sendMailBackground, courseEnrollmentEmailTemplate } = require('../utils/mailer');
 const router = express.Router();
 
 const razorpay = new Razorpay({
-  key_id:     process.env.RAZORPAY_KEY_ID,
+  key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
@@ -35,10 +35,10 @@ router.post('/create-order', auth, async (req, res) => {
     const amountPaise = await getCurrentPrice();
 
     const rzOrder = await razorpay.orders.create({
-      amount:   amountPaise,
+      amount: amountPaise,
       currency: 'INR',
-      receipt:  `receipt_user_${userId}_${Date.now()}`,
-      notes:    { user_id: String(userId), email: req.user.email },
+      receipt: `receipt_user_${userId}_${Date.now()}`,
+      notes: { user_id: String(userId), email: req.user.email },
     });
 
     await pool.query(
@@ -48,13 +48,13 @@ router.post('/create-order', auth, async (req, res) => {
     );
 
     return res.json({
-      success:  true,
+      success: true,
       order_id: rzOrder.id,
-      amount:   amountPaise,
+      amount: amountPaise,
       currency: 'INR',
-      key_id:   process.env.RAZORPAY_KEY_ID,
+      key_id: process.env.RAZORPAY_KEY_ID,
       user: {
-        name:  req.user.name,
+        name: req.user.name,
         email: req.user.email,
       },
     });
@@ -76,7 +76,7 @@ router.post('/verify', auth, async (req, res) => {
 
   try {
     // Verify HMAC signature
-    const body     = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expected = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(body)
@@ -94,7 +94,7 @@ router.post('/verify', auth, async (req, res) => {
     if (!orderRows.length) {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
-    const orderId     = orderRows[0].id;
+    const orderId = orderRows[0].id;
     const orderAmount = orderRows[0].amount;
 
     // Save payment record
@@ -115,7 +115,15 @@ router.post('/verify', auth, async (req, res) => {
     const [userRows] = await pool.query(
       'SELECT id, name, email, is_paid FROM users WHERE id = ?', [userId]
     );
-    const user  = userRows[0];
+    const user = userRows[0];
+
+    sendMailBackground(
+      user.email,
+      user.name,
+      "You're in! 🎉 Welcome to The Artpreneur Series",
+      courseEnrollmentEmailTemplate(user.name)
+    );
+
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, is_paid: user.is_paid },
       process.env.JWT_SECRET,

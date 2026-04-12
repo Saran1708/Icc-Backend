@@ -2,7 +2,7 @@
 const express  = require('express');
 const jwt      = require('jsonwebtoken');
 const { pool } = require('../config/db');
-const { sendMailBackground, welcomeEmailTemplate, otpEmailTemplate } = require('../utils/mailer');
+const { sendMailBackground, otpEmailTemplate } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -89,14 +89,7 @@ router.post('/', async (req, res) => {
     await pool.query('UPDATE users SET is_verified = 1 WHERE id = ?', [user.id]);
     await pool.query('DELETE FROM email_verifications WHERE id = ?', [record.id]);
 
-    // ── Send welcome email ───────────────────────────────────
-    sendMailBackground(
-      cleanEmail,
-      user.name,
-      `Welcome to ${process.env.MAIL_FROM_NAME}!`,
-      welcomeEmailTemplate(user.name)
-    );
-
+   
     // ── Issue JWT so user is auto-logged in ──────────────────
     const [userRows] = await pool.query(
       'SELECT id, name, email, is_paid FROM users WHERE id = ?',
