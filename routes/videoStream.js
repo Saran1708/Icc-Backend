@@ -49,7 +49,7 @@ router.get('/',
             return res.status(404).json({ success: false, error: 'Video not found' });
         }
 
-       const videoPath = '/home/' + process.env.HOSTINGER_USER + '/private_videos/' + videoFile;
+        const videoPath = '/home/' + process.env.HOSTINGER_USER + '/domains/api.artpreneurcourse.com/private_videos/' + videoFile;
         console.log('📁 Full video path:', videoPath);
 
         if (!fs.existsSync(videoPath)) {
