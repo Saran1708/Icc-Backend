@@ -6,6 +6,8 @@ node_modules/
 .env.local
 .env.development
 .env.production
+.env.prd
+
 
 # Logs
 logs/
