@@ -6,6 +6,13 @@ const { sendMail, sendMailBackground, otpEmailTemplate } = require('../utils/mai
 
 const router = express.Router();
 
+// Logger
+const log = {
+  info:  (...args) => console.log(`[${new Date().toISOString()}] [INFO] [register]`, ...args),
+  warn:  (...args) => console.warn(`[${new Date().toISOString()}] [WARN] [register]`, ...args),
+  error: (...args) => console.error(`[${new Date().toISOString()}] [ERROR] [register]`, ...args),
+};
+
 // Generate a 6-digit OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -15,25 +22,31 @@ function generateOTP() {
 router.post('/', async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    log.info('Request received | email=' + email);
 
     // ── Validate input ───────────────────────────────────────
     if (!name || !email || !password) {
+      log.warn('Missing required fields');
       return res.status(400).json({ success: false, error: 'All fields are required' });
     }
 
     const cleanName  = name.trim().replace(/[<>"'%;()&+]/g, '');
     const cleanEmail = email.trim().toLowerCase();
+    log.info('Input sanitized | cleanEmail=' + cleanEmail + ' | cleanName=' + cleanName);
 
     if (cleanName.length < 2 || cleanName.length > 80) {
+      log.warn('Invalid name length | cleanName=' + cleanName);
       return res.status(400).json({ success: false, error: 'Name must be 2–80 characters' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail) || cleanEmail.length > 254) {
+      log.warn('Invalid email format | cleanEmail=' + cleanEmail);
       return res.status(400).json({ success: false, error: 'Invalid email address' });
     }
 
     if (password.length < 8) {
+      log.warn('Password too short');
       return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
     }
 
@@ -42,11 +55,13 @@ router.post('/', async (req, res) => {
       'SELECT id, is_verified FROM users WHERE email = ?',
       [cleanEmail]
     );
+    log.info('Email check complete | exists=' + (existing.length > 0));
 
     if (existing.length > 0) {
       const user = existing[0];
 
       if (user.is_verified) {
+        log.warn('Email already verified/registered | cleanEmail=' + cleanEmail);
         // Fully registered — tell them to login
         return res.status(409).json({
           success: false,
@@ -54,6 +69,7 @@ router.post('/', async (req, res) => {
           field: 'email',
         });
       } else {
+        log.info('Email exists but unverified | userId=' + user.id + ' | cleanEmail=' + cleanEmail);
         // Registered but unverified — resend OTP
         const otp       = generateOTP();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -66,8 +82,10 @@ router.post('/', async (req, res) => {
           'INSERT INTO email_verifications (user_id, token, expires_at) VALUES (?, ?, ?)',
           [user.id, otp, expiresAt]
         );
+        log.info('New OTP generated | userId=' + user.id);
 
         sendMailBackground(cleanEmail, cleanName, 'Your verification OTP', otpEmailTemplate(cleanName, otp));
+        log.info('OTP email queued | cleanEmail=' + cleanEmail);
 
         return res.json({
           success: true,
@@ -80,6 +98,7 @@ router.post('/', async (req, res) => {
 
     // ── Hash password ────────────────────────────────────────
     const passwordHash = await bcrypt.hash(password, 10);
+    log.info('Password hashed');
 
     // ── Insert user ──────────────────────────────────────────
     const [result] = await pool.query(
@@ -88,6 +107,7 @@ router.post('/', async (req, res) => {
     );
 
     const userId = result.insertId;
+    log.info('User inserted | userId=' + userId + ' | cleanEmail=' + cleanEmail);
 
     // ── Generate OTP + save ──────────────────────────────────
     const otp       = generateOTP();
@@ -97,6 +117,7 @@ router.post('/', async (req, res) => {
       'INSERT INTO email_verifications (user_id, token, expires_at) VALUES (?, ?, ?)',
       [userId, otp, expiresAt]
     );
+    log.info('OTP generated and saved | userId=' + userId);
 
     // ── Send OTP email ───────────────────────────────────────
     sendMailBackground(
@@ -105,6 +126,7 @@ router.post('/', async (req, res) => {
       'Verify your email — OTP inside',
       otpEmailTemplate(cleanName, otp)
     );
+    log.info('Registration OTP email queued | userId=' + userId + ' | cleanEmail=' + cleanEmail);
 
     return res.json({
       success: true,
@@ -113,6 +135,7 @@ router.post('/', async (req, res) => {
     });
 
   } catch (err) {
+    log.error('Register error:', err.message);
     console.error('Register error:', err);
     return res.status(500).json({ success: false, error: 'Something went wrong. Please try again.' });
   }
